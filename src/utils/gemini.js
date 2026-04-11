@@ -1,4 +1,5 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const SERVER_GEMINI_ENDPOINT = '/api/gemini';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 /**
@@ -15,10 +16,22 @@ const PERSONALITY_TONES = {
  * Helper to call the Gemini API
  */
 async function callGemini(systemPrompt, userPrompt, temperature = 0.7) {
-  if (!GEMINI_API_KEY) {
-    throw new Error('Missing Gemini API Key. Please add VITE_GEMINI_API_KEY to your .env.local file.');
+  const response = await fetch(SERVER_GEMINI_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt, userPrompt, temperature }),
+  });
+
+  if (response.ok) {
+    return response.json();
   }
 
+  if (!GEMINI_API_KEY) {
+    const text = await response.text();
+    throw new Error(`Gemini request failed: ${response.status} - ${text}`);
+  }
+
+  // Local development fallback when no server function is available.
   const payload = {
     contents: [
       {
@@ -32,23 +45,19 @@ async function callGemini(systemPrompt, userPrompt, temperature = 0.7) {
     },
   };
 
-  const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+  const directResponse = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Gemini API error: ${response.status} - ${text}`);
+  if (!directResponse.ok) {
+    const text = await directResponse.text();
+    throw new Error(`Gemini API error: ${directResponse.status} - ${text}`);
   }
 
-  const data = await response.json();
+  const data = await directResponse.json();
   const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!textResponse) {
-    throw new Error('Failed to parse response from Gemini API.');
-  }
 
   return JSON.parse(textResponse);
 }
