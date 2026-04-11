@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import { PanelLeft } from 'lucide-react';
@@ -18,10 +18,12 @@ import HowItWorks from './pages/HowItWorks';
 import Contact from './pages/Contact';
 
 function AppLayout() {
-  const { currentUser } = useAuth();
+  useAuth();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const showSidebar = !['/login', '/signup'].includes(location.pathname);
 
   useEffect(() => {
     const onResize = () => {
@@ -57,7 +59,7 @@ function AppLayout() {
       }} />
 
       {/* Sidebar */}
-      {currentUser && (
+      {showSidebar && (
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((prev) => !prev)}
@@ -70,12 +72,12 @@ function AppLayout() {
       {/* Main Content Area */}
       <main
         className={`flex-1 h-full overflow-y-auto overflow-x-hidden relative z-10 scroll-smooth transition-all duration-300 ${
-          currentUser && !isMobile ? (sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60') : ''
+          showSidebar && !isMobile ? (sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60') : ''
         }`}
       >
 
         {/* Mobile top bar */}
-        {currentUser && isMobile && (
+        {showSidebar && isMobile && (
           <div className="sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-[#0b0f19]/80 backdrop-blur-lg border-b border-white/10">
             <h2 className="text-sm font-semibold text-white/90">AI Mock Interview Coach</h2>
             <button

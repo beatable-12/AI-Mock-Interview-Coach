@@ -11,6 +11,7 @@ import {
   History,
   Info,
   LogOut,
+  LogIn,
   Bot,
 } from 'lucide-react';
 
@@ -41,16 +42,40 @@ function Sidebar({ collapsed, onToggle, isMobile, mobileOpen, onCloseMobile }) {
     }
   };
 
-  if (!currentUser) return null;
+  const initials = currentUser
+    ? (currentUser.displayName
+        ? currentUser.displayName
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+        : currentUser.email[0].toUpperCase())
+    : 'GU';
+  const protectedPaths = new Set(['/dashboard', '/interview']);
 
-  const initials = currentUser.displayName
-    ? currentUser.displayName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : currentUser.email[0].toUpperCase();
+  const navigateFromSidebar = (path) => {
+    if (!currentUser && protectedPaths.has(path)) {
+      toast('Please sign in to access this section.');
+      navigate('/login');
+      onNavClick();
+      return;
+    }
+
+    navigate(path);
+    onNavClick();
+  };
+
+  const handleAuthAction = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      onNavClick();
+      return;
+    }
+
+    await handleLogout();
+  };
+
 
   const sidebarWidthClass = isMobile ? 'w-60' : (collapsed ? 'w-16' : 'w-60');
 
@@ -150,8 +175,7 @@ function Sidebar({ collapsed, onToggle, isMobile, mobileOpen, onCloseMobile }) {
               <button
                 key={name}
                 onClick={() => {
-                  navigate(path);
-                  onNavClick();
+                  navigateFromSidebar(path);
                 }}
                 title={collapsed ? name : undefined}
                 className={`group relative w-full flex items-center rounded-xl transition-all duration-300 ${
@@ -174,29 +198,33 @@ function Sidebar({ collapsed, onToggle, isMobile, mobileOpen, onCloseMobile }) {
             className={`flex items-center rounded-xl bg-white/5 border border-white/10 ${
               collapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'
             }`}
-            title={collapsed ? (currentUser.displayName || currentUser.email) : undefined}
+            title={collapsed ? (currentUser?.displayName || currentUser?.email || 'Guest mode') : undefined}
           >
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-semibold text-sm flex items-center justify-center shrink-0">
               {initials}
             </div>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-white">{currentUser.displayName || 'User'}</p>
-                <p className="truncate text-xs text-gray-400">{currentUser.email}</p>
+                <p className="truncate text-sm font-medium text-white">{currentUser?.displayName || 'Guest'}</p>
+                <p className="truncate text-xs text-gray-400">{currentUser?.email || 'Guest mode'}</p>
               </div>
             )}
           </div>
 
           <button
-            onClick={handleLogout}
+            onClick={handleAuthAction}
             disabled={loggingOut}
-            title={collapsed ? 'Sign Out' : undefined}
+            title={collapsed ? (currentUser ? 'Sign Out' : 'Sign In') : undefined}
             className={`w-full flex items-center rounded-xl border border-white/10 bg-white/5 text-gray-200 hover:bg-rose-500/15 hover:border-rose-400/40 hover:text-rose-200 transition-all duration-300 ${
               collapsed ? 'justify-center h-10' : 'gap-3 px-3 h-10'
             }`}
           >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="text-sm font-medium">{loggingOut ? 'Signing out...' : 'Sign Out'}</span>}
+            {currentUser ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+            {!collapsed && (
+              <span className="text-sm font-medium">
+                {currentUser ? (loggingOut ? 'Signing out...' : 'Sign Out') : 'Sign In'}
+              </span>
+            )}
           </button>
         </div>
       </aside>
