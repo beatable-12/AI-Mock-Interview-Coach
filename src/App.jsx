@@ -22,9 +22,10 @@ function AppLayout() {
   return (
     <div className="flex h-screen w-full bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a] overflow-hidden text-white relative">
       
-      {/* Global Glowing Blobs (Background) */}
-      <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      {/* Global Glowing Blobs — layered depth */}
+      <div className="absolute top-[-15%] right-[-8%] w-[45%] h-[45%] bg-indigo-600/25 rounded-full blur-[140px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="absolute bottom-[-15%] left-[-8%] w-[55%] h-[55%] bg-violet-700/15 rounded-full blur-[140px] pointer-events-none animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+      <div className="absolute top-[40%] left-[30%] w-[30%] h-[30%] bg-fuchsia-700/10 rounded-full blur-[120px] pointer-events-none animate-pulse" style={{ animationDuration: '10s', animationDelay: '4s' }} />
 
       <Toaster position="top-right" toastOptions={{
           style: {

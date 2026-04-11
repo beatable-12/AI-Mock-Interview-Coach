@@ -50,6 +50,23 @@
   .text-gradient {
     @apply text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400;
   }
+
+  /* Glow border on hover */
+  .glow-border {
+    @apply border border-white/10 hover:border-indigo-500/40 transition-all duration-300;
+  }
+
+  /* Premium stat card — add `group` class directly in JSX */
+  .stat-card {
+    @apply glass-card p-6 relative overflow-hidden cursor-default
+           hover:-translate-y-1.5 hover:border-indigo-500/20 hover:shadow-2xl
+           transition-all duration-300;
+  }
+
+  /* Inset glow for selected states */
+  .ring-glow {
+    @apply ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-500/10;
+  }
 }
 
 @layer components {
@@ -74,4 +91,23 @@
 
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+  20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
+
+.animate-shake {
+  animation: shake 0.6s ease-in-out;
+}
+
+@keyframes pressure-flash {
+  0%, 100% { opacity: 1; border-color: rgba(239, 68, 68, 0.5); }
+  50% { opacity: 0.85; border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+}
+
+.animate-pressure-flash {
+  animation: pressure-flash 0.4s ease-in-out 3;
 }

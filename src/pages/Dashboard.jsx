@@ -2,33 +2,48 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getUserInterviews } from '../firebase/firestore';
+import { getUserAnalytics, getTopWeaknesses } from '../utils/analytics';
 import { 
   PlusCircle, Calendar, Trophy, Briefcase, FileQuestion, 
   ArrowRight, Loader2, Sparkles, TrendingUp, TrendingDown, 
-  Zap, Lightbulb, Star
+  Zap, Lightbulb, Star, AlertTriangle, MessageSquare, Code2, ShieldAlert, AlignLeft
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import { HeroVisualSvg, EmptyStateSvg } from '../components/illustrations/SvgIllustrations';
 
+const WEAKNESS_META = {
+  communication: { label: 'Communication', icon: MessageSquare, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+  technical:     { label: 'Technical',     icon: Code2,         color: 'text-rose-400',   bg: 'bg-rose-500/10',   border: 'border-rose-500/20'   },
+  confidence:    { label: 'Confidence',    icon: ShieldAlert,   color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20'  },
+  structure:     { label: 'Structure',     icon: AlignLeft,     color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
+};
+
 function Dashboard() {
   const { currentUser } = useAuth();
   const [interviews, setInterviews] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       if (!currentUser) return;
-      const { interviews, error } = await getUserInterviews(currentUser.uid);
-      if (error) {
-        toast.error("Error loading interview history: " + error);
+      const [interviewResult, analyticsResult] = await Promise.all([
+        getUserInterviews(currentUser.uid),
+        getUserAnalytics(currentUser.uid),
+      ]);
+      if (interviewResult.error) {
+        toast.error('Error loading interview history: ' + interviewResult.error);
       } else {
-        setInterviews(interviews);
+        setInterviews(interviewResult.interviews);
       }
+      setAnalytics(analyticsResult.analytics);
       setLoading(false);
     }
     fetchData();
   }, [currentUser]);
+
+  const topWeaknesses = getTopWeaknesses(analytics?.weaknesses, 3);
 
   // Calculations
   const totalInterviews = interviews.length;
@@ -82,85 +97,86 @@ function Dashboard() {
               <Sparkles className="w-3.5 h-3.5" /> Workspace Active
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight leading-tight">
-            Level up your career, <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-500">{currentUser.displayName || "User"}</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3 tracking-tight leading-tight">
+            Level up,{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400">
+              {currentUser.displayName?.split(' ')[0] || 'Candidate'}
+            </span>
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium text-lg leading-relaxed max-w-lg mb-8">
-            Track your progress, review past feedback, and improve faster with AI-driven analytics.
+          <p className="text-gray-400 font-medium text-base leading-relaxed max-w-md mb-8">
+            Track progress, review feedback, and improve faster — all powered by AI analytics.
           </p>
-          <div className="flex gap-4">
-            <Link to="/interview" className="btn-primary flex-1 md:flex-none justify-center">
-              <PlusCircle className="w-5 h-5" /> Start Interview
+          <div className="flex gap-3">
+            <Link to="/interview" className="btn-primary flex-1 md:flex-none justify-center group">
+              <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" /> Start Interview
             </Link>
           </div>
         </div>
-        
+
         {/* Right Side Illustration */}
-        <div className="hidden md:flex relative z-10 w-1/3 justify-center items-center p-8 bg-gradient-to-l from-indigo-50/50 to-transparent dark:from-indigo-900/10 h-full min-h-[300px]">
-           <HeroVisualSvg className="w-full h-auto drop-shadow-xl" />
+        <div className="hidden md:flex relative z-10 w-1/3 justify-center items-center p-8 bg-gradient-to-l from-indigo-900/20 to-transparent h-full min-h-[280px]">
+           <HeroVisualSvg className="w-full h-auto drop-shadow-xl opacity-90" />
         </div>
       </div>
 
       {/* 4-Card Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
-        
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+
         {/* Total Interviews */}
-        <div className="glass-card p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Briefcase className="w-16 h-16 text-indigo-500" />
+        <div className="stat-card group">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
           </div>
-          <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 flex items-center justify-center mb-4 shadow-sm">
-            <FileQuestion className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:border-indigo-500/30 group-hover:bg-indigo-500/10 transition-all duration-300">
+            <FileQuestion className="w-5 h-5 text-gray-400 group-hover:text-indigo-400 transition-colors" />
           </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Total Interviews</p>
-          <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white group-hover:text-indigo-500 transition-colors">{totalInterviews}</div>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Sessions</p>
+          <div className="text-4xl font-black text-white group-hover:text-indigo-400 transition-colors duration-300">{totalInterviews}</div>
+          <p className="text-xs text-gray-600 mt-1">Total conducted</p>
         </div>
 
         {/* Avg Score */}
-        <div className="glass-card p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Trophy className="w-16 h-16 text-indigo-500" />
+        <div className="stat-card group">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/20 transition-all duration-300">
+            <Zap className="w-5 h-5 text-indigo-400" />
           </div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 flex items-center justify-center mb-4 shadow-sm">
-            <Zap className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Average Score</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Avg Score</p>
           <div className="flex items-baseline gap-1">
-             <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white group-hover:text-indigo-500 transition-colors">{averageScoreAllTime}</div>
-             <span className="text-sm font-semibold text-gray-400">/ 10</span>
+            <div className="text-4xl font-black text-white group-hover:text-indigo-400 transition-colors duration-300">{averageScoreAllTime}</div>
+            <span className="text-sm font-bold text-gray-600">/ 10</span>
           </div>
+          <p className="text-xs text-gray-600 mt-1">Across all sessions</p>
         </div>
 
         {/* Best Score */}
-        <div className="glass-card p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Star className="w-16 h-16 text-emerald-500" />
+        <div className="stat-card group">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-all duration-300">
+            <Trophy className="w-5 h-5 text-emerald-400" />
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-center mb-4 shadow-sm">
-            <Trophy className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Best Score</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Best Score</p>
           <div className="flex items-baseline gap-1">
-             <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white group-hover:text-emerald-500 transition-colors">{bestScore}</div>
-             <span className="text-sm font-semibold text-gray-400">/ 10</span>
+            <div className="text-4xl font-black text-white group-hover:text-emerald-400 transition-colors duration-300">{bestScore}</div>
+            <span className="text-sm font-bold text-gray-600">/ 10</span>
           </div>
+          <p className="text-xs text-gray-600 mt-1">Personal best</p>
         </div>
 
-        {/* Improvement */}
-        <div className="glass-card p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            {improvement >= 0 ? <TrendingUp className="w-16 h-16 text-emerald-500" /> : <TrendingDown className="w-16 h-16 text-rose-500" />}
+        {/* Trend */}
+        <div className="stat-card group">
+          <div className={`absolute inset-0 bg-gradient-to-br ${improvement >= 0 ? 'from-emerald-500/5' : 'from-rose-500/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl`} />
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-4 transition-all duration-300 ${improvement >= 0 ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20'}`}>
+            {improvement >= 0
+              ? <TrendingUp className="w-5 h-5 text-emerald-400" />
+              : <TrendingDown className="w-5 h-5 text-rose-400" />}
           </div>
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center mb-4 shadow-sm ${improvement >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/50' : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800/50'}`}>
-            {improvement >= 0 ? <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> : <TrendingDown className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Trend</p>
+          <div className={`text-4xl font-black transition-colors duration-300 ${improvement > 0 ? 'text-emerald-400' : improvement < 0 ? 'text-rose-400' : 'text-white'}`}>
+            {improvement > 0 ? '+' : ''}{improvement}%
           </div>
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Latest Trend</p>
-          <div className="flex items-center gap-1.5">
-             <div className={`text-3xl md:text-4xl font-black ${improvement > 0 ? 'text-emerald-500' : improvement < 0 ? 'text-rose-500' : 'text-gray-900 dark:text-white'}`}>
-               {improvement > 0 ? '+' : ''}{improvement}%
-             </div>
-          </div>
+          <p className="text-xs text-gray-600 mt-1">vs previous</p>
         </div>
 
       </div>
@@ -170,22 +186,24 @@ function Dashboard() {
         {/* Main Content Area (Recent Interviews) */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-1 h-5 rounded-full bg-gradient-to-b from-indigo-400 to-violet-500 inline-block" />
               Recent Interviews
             </h2>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{totalInterviews} total</span>
           </div>
 
           {interviews.length === 0 ? (
-            <div className="glass-card flex flex-col md:flex-row items-center border-dashed border-2 border-gray-200 dark:border-gray-800 p-8 gap-8">
-              <div className="w-48 h-48 flex-shrink-0 animate-float">
+            <div className="glass-card flex flex-col md:flex-row items-center border-dashed border-2 border-white/10 p-8 gap-8">
+              <div className="w-44 h-44 flex-shrink-0 animate-float opacity-80">
                 <EmptyStateSvg />
               </div>
               <div className="flex-1 text-center md:text-left">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No history found</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-                  Your past interview records will appear here securely. Take your first interactive session to start generating powerful analytical insights.
+                <h3 className="text-2xl font-bold text-white mb-2">No history yet</h3>
+                <p className="text-gray-500 mb-6 leading-relaxed text-sm">
+                  Your past interviews will appear here. Start your first session to unlock AI-driven performance analytics.
                 </p>
-                <Link to="/interview" className="btn-primary w-full md:w-auto inline-flex">
+                <Link to="/interview" className="btn-primary inline-flex">
                   Start Your First Interview
                 </Link>
               </div>
@@ -233,36 +251,79 @@ function Dashboard() {
           )}
         </div>
         
-        {/* Right Sidebar (Charts & Quick Actions) */}
+        {/* Right Sidebar */}
         <div className="lg:col-span-1 space-y-6">
-          
-          {/* Quick Actions Panel */}
+
+          {/* Quick Actions */}
           <div className="glass-card p-6 overflow-hidden relative">
              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-             <h3 className="font-bold text-gray-900 dark:text-white mb-4 relative z-10">Quick Actions</h3>
-             
+             <h3 className="font-bold text-white mb-4 relative z-10">Quick Actions</h3>
              <div className="space-y-3 relative z-10">
-                <Link to="/interview" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors group">
-                   <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 flex items-center justify-center text-indigo-500 group-hover:scale-110 transition-transform shadow-sm">
+                <Link to="/interview" className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors group">
+                   <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                       <PlusCircle className="w-5 h-5" />
                    </div>
                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white text-sm">New Interview</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Generate a new session</p>
+                      <h4 className="font-semibold text-white text-sm">New Interview</h4>
+                      <p className="text-xs text-gray-500">Generate a new session</p>
                    </div>
                 </Link>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors group cursor-pointer">
-                   <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 flex items-center justify-center text-amber-500 group-hover:scale-110 transition-transform shadow-sm">
+                <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-colors group cursor-pointer">
+                   <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
                       <Lightbulb className="w-5 h-5" />
                    </div>
                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Tips & Tricks</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Learn the STAR method</p>
+                      <h4 className="font-semibold text-white text-sm">Tips & Tricks</h4>
+                      <p className="text-xs text-gray-500">Learn the STAR method</p>
                    </div>
                 </div>
              </div>
           </div>
+
+          {/* Weakness Tracker */}
+          {topWeaknesses.length > 0 && (
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+                <h3 className="font-bold text-white">Weakness Radar</h3>
+              </div>
+              <div className="space-y-4">
+                {topWeaknesses.map(({ key, count }, i) => {
+                  const meta = WEAKNESS_META[key] || WEAKNESS_META.communication;
+                  const Icon = meta.icon;
+                  const maxCount = topWeaknesses[0].count;
+                  const pct = Math.round((count / maxCount) * 100);
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${meta.bg} border ${meta.border}`}>
+                            <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
+                          </div>
+                          <span className="text-sm font-semibold text-gray-300">{meta.label}</span>
+                        </div>
+                        <span className="text-xs font-bold text-gray-500">{count}×</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${meta.bg.replace('/10', '/60')}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {analytics?.totalFillerWords > 0 && (
+                <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span className="text-xs text-gray-400">
+                    <span className="text-amber-300 font-bold">{analytics.totalFillerWords}</span> total filler words used across all sessions
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Chart Panel (Only visible if > 1 interviews) */}
           {totalInterviews > 1 && (
