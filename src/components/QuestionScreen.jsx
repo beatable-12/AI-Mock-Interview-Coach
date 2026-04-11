@@ -1,21 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff, Send, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Send, Clock, AlertCircle, RefreshCw, Layers, Video, VideoOff, Volume2, VolumeX, Sparkles, User } from 'lucide-react';
 import { startSpeechRecognition, stopSpeechRecognition, isSpeechRecognitionSupported } from '../utils/speech';
 
 function QuestionScreen({ question, currentIndex, totalQuestions, onSubmit, onSkip, isLoading }) {
   const [answer, setAnswer] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(120); 
   const [speechError, setSpeechError] = useState('');
   const recognitionRef = useRef(null);
 
-  // Timer logical interval
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isAIVoiceOn, setIsAIVoiceOn] = useState(true);
+  const [isAISpeaking, setIsAISpeaking] = useState(false);
+  
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  // Timer & AI Voice Effect
   useEffect(() => {
     if (isLoading) return;
-    
-    // Reset timer on new question
     setTimeLeft(120);
     setAnswer('');
+    
+    if (isAIVoiceOn && question?.question) {
+      playAIQuestion(question.question);
+    }
     
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -27,39 +36,77 @@ function QuestionScreen({ question, currentIndex, totalQuestions, onSubmit, onSk
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      window.speechSynthesis.cancel();
+    };
   }, [currentIndex, isLoading]);
 
-  // Clean-up speech on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current) stopSpeechRecognition(recognitionRef.current);
     };
   }, []);
 
-  const progressPercentage = ((currentIndex) / totalQuestions) * 100;
+  useEffect(() => {
+    if (isCameraOn) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isCameraOn]);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      streamRef.current = stream;
+    } catch (err) {
+      setIsCameraOn(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const playAIQuestion = (text) => {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.includes('en') && v.name.includes('Google'));
+    if (englishVoice) utterance.voice = englishVoice;
+    
+    utterance.rate = 0.95;
+    utterance.onstart = () => setIsAISpeaking(true);
+    utterance.onend = () => setIsAISpeaking(false);
+    utterance.onerror = () => setIsAISpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const manuallyReplayQuestion = () => {
+    if (!isAIVoiceOn) setIsAIVoiceOn(true);
+    playAIQuestion(question.question);
+  };
 
   const toggleRecording = () => {
     setSpeechError('');
-    
     if (isRecording) {
       stopSpeechRecognition(recognitionRef.current);
       setIsRecording(false);
     } else {
+      if (isAISpeaking) window.speechSynthesis.cancel();
+
       recognitionRef.current = startSpeechRecognition({
         onResult: ({ finalTranscript, interimTranscript }) => {
-          // If there's final transcript use that to append, interim just updates the visual temporarily
-          // For simplicity we'll just track the current cumulative view (interim can be tricky without complex state)
-          // Actually, web speech API continuous mode keeps growing the full transcript naturally in our previous simple loop
-          // But appending in React requires keeping previous state.
-          // In speech.js we did not pass back previous vs new state correctly if we just append inside event hook.
-          // To fix simple case: just replace answer with final + interim. 
-          // Note: our speech.js wrapper in this implementation returns the ENTIRE transcript processed so far.
-          setAnswer((prev) => {
-             // to prevent rewriting over typed text, we should ideally append.
-             // Given limitations, let's just make voice dictate the whole box if they use it.
-             return finalTranscript + interimTranscript;
-          });
+          setAnswer((prev) => finalTranscript + interimTranscript);
         },
         onError: (err) => {
           setSpeechError(err.message);
@@ -79,122 +126,165 @@ function QuestionScreen({ question, currentIndex, totalQuestions, onSubmit, onSk
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const categoryColor = 
-    question.category === 'HR' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-800' :
-    question.category === 'Technical' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800' :
-    'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800';
-
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-500">
+    <div className="w-full max-w-5xl mx-auto h-full flex flex-col justify-between py-6 px-4 animate-in fade-in duration-700">
       
-      {/* Progress Bar */}
-      <div className="h-2 w-full bg-gray-100 dark:bg-gray-700">
-        <div 
-          className="h-full bg-primary-500 transition-all duration-500 ease-out"
-          style={{ width: `${progressPercentage}%` }}
-        ></div>
+      {/* Top HUD */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-gray-300">
+            Q {currentIndex + 1} / {totalQuestions}
+          </span>
+          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+            <Layers className="w-3 h-3" /> {question.category}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 mr-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Live</span>
+          </div>
+
+          <button 
+            onClick={() => setIsCameraOn(!isCameraOn)}
+            className={`p-2 rounded-xl transition-all ${isCameraOn ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}
+          >
+            {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          </button>
+          
+          <button 
+            onClick={() => {
+              setIsAIVoiceOn(!isAIVoiceOn);
+              if (isAIVoiceOn) window.speechSynthesis.cancel();
+            }}
+            className={`p-2 rounded-xl transition-all ${isAIVoiceOn ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'}`}
+          >
+            {isAIVoiceOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </button>
+
+          <div className={`flex items-center gap-2 font-mono text-sm font-bold px-3 py-2 rounded-xl border ${
+            timeLeft < 30 ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse' : 'bg-white/5 text-gray-300 border-white/10'
+          }`}>
+            <Clock className="w-4 h-4" /> {formatTime(timeLeft)}
+          </div>
+        </div>
       </div>
 
-      <div className="p-6 md:p-10 space-y-8">
+      {/* Floating Camera UI */}
+      {isCameraOn && (
+        <div className="fixed top-24 right-8 w-40 h-52 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10 z-50 transition-all duration-500 hover:scale-105 group">
+          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover mirror" style={{ transform: 'rotateY(180deg)' }} />
+          <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-white flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <User className="w-3 h-3" /> You
+          </div>
+          {isRecording && <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></div>}
+        </div>
+      )}
+
+      {/* Chat Transcript Area */}
+      <div className="flex-1 overflow-y-auto pr-4 space-y-8 pb-10">
         
-        {/* Header Info */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700 pb-6">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-sm">
-              {currentIndex + 1}
-            </span>
-            <span className="text-gray-500 dark:text-gray-400 font-medium">of {totalQuestions}</span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${categoryColor}`}>
-              {question.category}
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-              {question.difficulty}
-            </span>
+        {/* AI Question Bubble */}
+        <div className="flex items-start gap-4 max-w-3xl animate-in fade-in slide-in-from-left-4 duration-500">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-glow-sm">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-
-          <div className={`flex items-center gap-2 font-mono text-lg font-bold px-4 py-1.5 rounded-lg border ${
-            timeLeft < 30 
-              ? 'text-red-600 border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800/50' 
-              : 'text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
-          }`}>
-            <Clock className="w-5 h-5" />
-            {formatTime(timeLeft)}
+          <div className="flex flex-col items-start gap-2">
+            <span className="text-xs font-bold text-gray-400 pl-1 uppercase tracking-wider">Coach AI</span>
+            <div className="chat-bubble-ai p-5 md:p-6 text-lg leading-relaxed relative group cursor-pointer" onClick={manuallyReplayQuestion}>
+              {question.question}
+              
+              {/* Speaking Indicator inside bubble */}
+              {isAISpeaking && (
+                <div className="absolute -bottom-6 left-2 flex items-center gap-1 opacity-70">
+                  <div className="w-1 h-2 bg-indigo-400 animate-pulse rounded-full" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-1 h-3 bg-violet-400 animate-pulse rounded-full" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-1 h-2 bg-indigo-400 animate-pulse rounded-full" style={{ animationDelay: '300ms' }}></div>
+                  <span className="text-[10px] text-indigo-300 ml-1">Speaking...</span>
+                </div>
+              )}
+            </div>
+            {!isAISpeaking && (
+              <span className="text-[10px] text-gray-500 pl-1 cursor-pointer hover:text-indigo-400" onClick={manuallyReplayQuestion}>
+                Click bubble to replay
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Question Area */}
-        <div className="space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white leading-tight">
-            {question.question}
-          </h2>
-        </div>
+        {/* User Answer Bubble (Only shows if there is text) */}
+        {answer.length > 0 && (
+          <div className="flex items-start gap-4 flex-row-reverse max-w-3xl ml-auto animate-in fade-in slide-in-from-right-4 duration-300">
+             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 border border-white/10">
+               <User className="w-5 h-5 text-gray-300" />
+             </div>
+             <div className="flex flex-col items-end gap-1">
+               <span className="text-xs font-bold text-gray-400 pr-1 uppercase tracking-wider">You</span>
+               <div className="chat-bubble-user p-5 text-base leading-relaxed break-words whitespace-pre-wrap">
+                 {answer}
+                 {isRecording && <span className="inline-block w-1.5 h-4 ml-1 bg-white/70 animate-pulse align-middle"></span>}
+               </div>
+             </div>
+          </div>
+        )}
 
-        {/* Answer Area */}
-        <div className="space-y-4 relative">
+      </div>
+
+      {/* Bottom Input Area */}
+      <div className="glass-card p-4 flex flex-col mt-4 border border-white/5 shadow-glow-sm relative">
+        {speechError && (
+          <div className="absolute -top-10 right-0 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2">
+            <AlertCircle className="w-3 h-3" /> {speechError}
+          </div>
+        )}
+
+        <div className="flex items-end gap-4 relative">
           <textarea
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             disabled={isLoading || isRecording}
-            placeholder="Type your answer here, or click the microphone to speak..."
-            className="w-full h-48 md:h-64 p-5 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow text-lg leading-relaxed placeholder:text-gray-400 disabled:opacity-70"
-          ></textarea>
-          
-          <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+            placeholder={isRecording ? "Listening to your response..." : "Type your answer or use the microphone..."}
+            className="w-full h-24 max-h-48 bg-transparent text-gray-100 placeholder:text-gray-500 resize-none outline-none text-base disabled:opacity-50 py-2 custom-scrollbar"
+          />
+
+          <div className="flex flex-col justify-end gap-2 shrink-0 pb-1">
             {isSpeechRecognitionSupported() && (
               <button
                 type="button"
                 onClick={toggleRecording}
                 disabled={isLoading}
-                className={`p-3 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                className={`p-3.5 rounded-xl transition-all shadow-md flex items-center justify-center ${
                   isRecording 
-                    ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
-                    : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:text-primary-600'
+                    ? 'bg-rose-500 text-white shadow-rose-500/50 animate-pulse' 
+                    : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30'
                 }`}
-                title={isRecording ? "Stop Recording" : "Start Recording"}
+                title={isRecording ? "Stop Recording" : "Speak to answer"}
               >
                 {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
             )}
-            {isRecording && (
-              <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded shadow-sm">
-                Recording...
-              </span>
-            )}
+
+            <button
+              onClick={() => {
+                if(isAISpeaking) window.speechSynthesis.cancel();
+                onSubmit(answer);
+              }}
+              disabled={answer.length < 10 || isLoading}
+              className="p-3.5 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-xl shadow-glow-sm hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 transition-all flex items-center justify-center"
+              title="Submit Answer"
+            >
+              {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 translate-x-[-1px]" />}
+            </button>
           </div>
-          
-          {speechError && (
-            <p className="text-sm text-red-500 flex items-center gap-1 mt-1">
-              <AlertCircle className="w-4 h-4" /> {speechError}
-            </p>
-          )}
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button
-            onClick={onSkip}
-            disabled={isLoading}
-            className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
-          >
-            Skip Question
-          </button>
-          
-          <button
-            onClick={() => onSubmit(answer)}
-            disabled={answer.length < 10 || isLoading}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-          >
-            {isLoading ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                Analyzing Response...
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                Submit Answer
-              </>
-            )}
+        <div className="absolute -bottom-8 left-0 right-0 flex justify-center">
+          <button onClick={onSkip} disabled={isLoading} className="text-xs font-semibold text-gray-500 hover:text-gray-300 transition-colors">
+            Skip this question
           </button>
         </div>
       </div>

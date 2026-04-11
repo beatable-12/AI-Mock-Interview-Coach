@@ -27,59 +27,58 @@ function SetupScreen({ onStart, isLoading }) {
   };
 
   return (
-    <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
-      <div className="bg-primary-600 p-8 text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500 rounded-full blur-3xl opacity-50 -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary-700 rounded-full blur-3xl opacity-50 -ml-20 -mb-20"></div>
-        
-        <h1 className="relative z-10 text-3xl font-extrabold text-white mb-2 tracking-tight">AI Mock Interview Coach</h1>
-        <p className="relative z-10 text-primary-100 font-medium">Practice. Improve. Land the Job.</p>
+    <div className="w-full max-w-lg glass-card overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 mx-auto mt-6">
+      
+      <div className="p-8 pb-4 relative overflow-hidden">
+        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">Configure Interview</h1>
+        <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">Tailor the AI exactly to your requirements.</p>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
       </div>
       
-      <form onSubmit={handleSubmit} className="p-8 pb-10 space-y-8">
+      <form onSubmit={handleSubmit} className="p-8 pt-0 space-y-8 relative z-10">
         
         {/* Role Selection */}
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-            <User className="w-4 h-4 text-primary-500" />
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <User className="w-4 h-4 text-indigo-500" />
             Target Role
           </label>
-          <div className="relative">
+          <div className="relative group">
             <select 
               value={role} 
               onChange={(e) => setRole(e.target.value)}
-              className="w-full appearance-none bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow disabled:opacity-50"
+              className="w-full appearance-none bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all cursor-pointer font-medium shadow-sm hover:border-gray-300 dark:hover:border-gray-600 disabled:opacity-50"
               disabled={isLoading}
             >
               {roles.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300">
+              <svg className="fill-current h-4 w-4 transition-transform group-hover:translate-y-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
             </div>
           </div>
         </div>
 
         {/* Interview Type */}
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-primary-500" />
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-indigo-500" />
             Interview Type
           </label>
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-3">
             {types.map((t) => (
               <label 
                 key={t}
-                className={`relative flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                className={`relative flex cursor-pointer items-center justify-between rounded-xl border p-4 transition-all shadow-sm ${
                   type === t 
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-500' 
-                  : 'border-gray-200 dark:border-gray-600'
+                  ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 ring-1 ring-indigo-500' 
+                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border ${type === t ? 'border-primary-500 bg-primary-500' : 'border-gray-300 dark:border-gray-500'}`}>
-                    {type === t && <div className="h-2 w-2 rounded-full bg-white"></div>}
+                  <div className={`flex h-5 w-5 items-center justify-center rounded-full border transition-colors ${type === t ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300 dark:border-gray-600 shadow-inner'}`}>
+                    {type === t && <div className="h-2 w-2 rounded-full bg-white shadow-sm"></div>}
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-200">{t}</span>
+                  <span className={`text-sm font-semibold ${type === t ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-700 dark:text-gray-300'}`}>{t}</span>
                 </div>
                 <input 
                   type="radio" 
@@ -96,37 +95,39 @@ function SetupScreen({ onStart, isLoading }) {
         </div>
 
         {/* Number of Questions */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-primary-500" />
-              Number of Questions
-            </div>
-            <span className="bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 px-2.5 py-0.5 rounded-full text-xs font-bold font-mono">
-              {count}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <Settings2 className="w-4 h-4 text-indigo-500" />
+              Question Count
+            </label>
+            <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+              {count} Questions
             </span>
-          </label>
-          <input 
-            type="range" 
-            min="3" 
-            max="10" 
-            value={count} 
-            onChange={(e) => setCount(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary-500 disabled:opacity-50"
-            disabled={isLoading}
-          />
-          <div className="flex justify-between text-xs text-gray-500 font-medium px-1">
-            <span>3</span>
-            <span>10</span>
+          </div>
+          <div className="relative">
+            <input 
+              type="range" 
+              min="3" 
+              max="10" 
+              value={count} 
+              onChange={(e) => setCount(Number(e.target.value))}
+              className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500 disabled:opacity-50 hover:accent-indigo-400 transition-all"
+              disabled={isLoading}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-gray-400 font-semibold px-1">
+            <span>Quick (3)</span>
+            <span>Deep Dive (10)</span>
           </div>
         </div>
 
         {/* Submit action */}
-        <div className="pt-2">
+        <div className="pt-4 border-t border-gray-100 dark:border-gray-800/50">
           <button 
             type="submit" 
             disabled={isLoading}
-            className="group relative w-full flex justify-center items-center gap-2 py-3.5 px-4 border border-transparent text-base font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-md hover:shadow-lg dark:focus:ring-offset-gray-900 overflow-hidden"
+            className="w-full btn-primary group overflow-hidden relative"
           >
             {isLoading ? (
               <>
@@ -135,14 +136,14 @@ function SetupScreen({ onStart, isLoading }) {
               </>
             ) : (
               <>
-                Start Interview
+                Initialize Interview
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </>
             )}
             
             {/* Shimmer effect */}
             {!isLoading && (
-              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
             )}
           </button>
         </div>
