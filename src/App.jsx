@@ -16,6 +16,7 @@ import Interview from './pages/Interview';
 import About from './pages/About';
 import HowItWorks from './pages/HowItWorks';
 import Contact from './pages/Contact';
+import Landing from './components/Landing';
 
 function AppLayout() {
   useAuth();
@@ -23,7 +24,7 @@ function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const showSidebar = !['/login', '/signup'].includes(location.pathname);
+  const showSidebar = !['/', '/login', '/signup'].includes(location.pathname);
 
   useEffect(() => {
     const onResize = () => {
@@ -93,7 +94,7 @@ function AppLayout() {
 
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Navigate to="/about" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/about" element={<About />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/contact" element={<Contact />} />

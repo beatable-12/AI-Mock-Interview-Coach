@@ -193,8 +193,9 @@ function Interview() {
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     if (interviewMeta?.pressureMode) return; // block skip in pressure mode
+    setIsLoading(true);
 
     const newEvaluations = [...evaluations];
     newEvaluations[currentQuestionIndex] = {
@@ -213,11 +214,37 @@ function Interview() {
     if (!reachedTarget && hasNextQ) {
       setCurrentQuestionIndex(nextIndex);
       setScreen('question');
-    } else if (!reachedTarget && !hasNextQ) {
-      finishInterview(newEvaluations);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!reachedTarget && !hasNextQ) {
+      try {
+        const nextQ = await generateFollowUpQuestion(
+          interviewMeta.role,
+          interviewMeta.type,
+          interviewMeta.personality,
+          conversationHistoryRef.current
+        );
+        setQuestions((prev) => [...prev, nextQ]);
+        setCurrentQuestionIndex(nextIndex);
+        setScreen('question');
+      } catch {
+        // Graceful fallback question ensures skip moves forward instead of ending interview.
+        const fallbackQ = {
+          question: 'Tell me about a challenge you faced recently and how you handled it.',
+          category: 'Behavioral',
+          difficulty: 'Medium',
+        };
+        setQuestions((prev) => [...prev, fallbackQ]);
+        setCurrentQuestionIndex(nextIndex);
+        setScreen('question');
+      }
     } else {
       finishInterview(newEvaluations);
     }
+
+    setIsLoading(false);
   };
 
   const handleNextStep = () => {

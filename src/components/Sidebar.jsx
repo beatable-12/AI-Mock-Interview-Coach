@@ -114,7 +114,7 @@ function Sidebar({ collapsed, onToggle, isMobile, mobileOpen, onCloseMobile }) {
         <div className={`relative z-10 flex items-center ${collapsed ? 'justify-center px-2 py-3' : 'justify-between px-3 py-3'} border-b border-white/10`}>
           <button
             onClick={() => {
-              navigate('/about');
+              navigate('/');
               onNavClick();
             }}
             className={`group flex items-center ${collapsed ? 'justify-center' : 'gap-3'} rounded-xl px-2 py-2 transition-all duration-300 hover:bg-white/10`}
