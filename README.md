@@ -41,3 +41,5 @@ A React + Vite + Tailwind CSS web application that offers students free, AI-powe
 - Tailwind CSS
 - Firebase Auth + Firestore
 - Gemini API via Vercel Serverless Function
+
+- Deployed:https://ai-mock-interview-coach-eta.vercel.app/
